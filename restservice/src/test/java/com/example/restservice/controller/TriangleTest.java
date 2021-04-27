@@ -3,7 +3,7 @@ package com.example.restservice.controller;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 
-public class TriangleTest extends ControllerTest {
+public class TriangleTest /*extends ControllerTest*/ {
 
     @Test
     void TriangleEquilateral(){

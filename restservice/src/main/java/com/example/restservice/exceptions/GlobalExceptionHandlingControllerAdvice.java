@@ -16,7 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.util.Date;
 
 @ControllerAdvice
-public class GlobalExceptionHandlingControllerAdvice /*extends ResponseEntityExceptionHandler*/{
+public class GlobalExceptionHandlingControllerAdvice {
 
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<ExceptionResponse> badRequest(HttpClientErrorException ex, WebRequest request) {
