@@ -78,7 +78,6 @@ public class Controller {
             } catch (Exception e) {
                 return new ResponseEntity<>("400 error", HttpStatus.BAD_REQUEST);
             }
-
         }
         //triangle save
         AverageValues values = new AverageValues();
