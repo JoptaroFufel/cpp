@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class Cache {
-
     private HashMap<String, String> cache;
 
     public Cache() {

@@ -2,14 +2,11 @@ package com.example.restservice.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.http.HttpStatus;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -18,47 +15,33 @@ import java.util.List;
 public class Controller {
 
     @Autowired
+    private CounterService counterService;
+    @Autowired
+    private TriangleService triangleService;
+    @Autowired
     private Cache cache;
+    @Autowired
+    private DatabaseService databaseService;
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
+
     @GetMapping("/result")
-    public Triangle GetParams(@RequestParam(value = "num1", defaultValue = "0") Integer num1,
-                              @RequestParam(value = "num2", defaultValue = "0") Integer num2,
-                              @RequestParam(value = "num3", defaultValue = "0") Integer num3) {
-        if(num1 < 0 || num2 <=0 || num3 < 0) {
-            String errorMessage = "Invalid data";
-            logger.error(errorMessage);
-            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, errorMessage);
+    public ResponseEntity<Object> GetParams(@RequestParam(value = "num1", defaultValue = "0") Integer num1,
+                                              @RequestParam(value = "num2", defaultValue = "0") Integer num2,
+                                              @RequestParam(value = "num3", defaultValue = "0") Integer num3) {
+        counterService.incrementCounter();
+        Triangle triangle = triangleService.getTriangle(num1, num2, num3);
+        triangle.TriangleCalc();
+        if(!databaseService.isStored(num1, num2, num3)){
+            databaseService.insertTriangle((triangle));
+            return new ResponseEntity<>(triangle, HttpStatus.OK);
         }
-        if(num1 + num2 == num3 || num1 + num3 == num2 || num2 + num3 == num1){
-            String errorMessage = "Not a triangle";
-            logger.error(errorMessage);
-            throw new HttpClientErrorException(
-                    HttpStatus.BAD_REQUEST, errorMessage);
-        }
+        return new ResponseEntity<>(databaseService.getTriangle(num1, num2, num3), HttpStatus.OK);
+    }
 
-        String s = num1 + " " + num2 + " " + num3;
-        if (cache.isStored(s)) {
-            logger.info("Value restored from cache: " + num1 + " " + num2 + " " + num3);
-            return new Triangle(num1, num2, num2, cache.get(s));
-        }
-
-        Triangle triangleObj;
-        try {
-            triangleObj = new Triangle(num1, num2, num3);
-            triangleObj.TriangleCalc();
-        } catch(RuntimeException ex) {
-            String errorMessage =
-                    "Computation error";
-            logger.error(errorMessage);
-            throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage);
-        }
-
-        cache.insert(s, triangleObj.getAnswer());
-
-        logger.info("Successfully compute");
-
-        return triangleObj;
+    @GetMapping("/counter")
+    public ResponseEntity<Object> getCounter() {
+        return new ResponseEntity<>(counterService.getCounter(), HttpStatus.OK);
     }
 
     @PostMapping("/result")
@@ -82,21 +65,20 @@ public class Controller {
         //triangle save
         AverageValues values = new AverageValues();
         TriangleList.forEach((triangle) -> {
-            String s = triangle.getNum1() + " " + triangle.getNum2() + " " + triangle.getNum3();
-            if (cache.isStored(s)) {
-                logger.info("Value restored from cache: " + triangle.getNum1() + " " + triangle.getNum2() + " " + triangle.getNum3());
-                triangle.setAnswer(cache.get(s));
+            if (databaseService.isStored(triangle.getNum1(), triangle.getNum2(), triangle.getNum3())) {
+                triangle.setAnswer(databaseService.getTriangle(triangle.getNum1(), triangle.getNum2(), triangle.getNum3()).getAnswer());
             }
             else {
                 triangle.TriangleCalc();
                 logger.info("Successfully compute");
-                cache.insert(s, triangle.getAnswer());
+                databaseService.insertTriangle(triangle);
             }
         });
 
         values.setTriangleAnswerList(TriangleList);
         values.calcAverage(TriangleList);
 
+        counterService.incrementCounter();
         return new ResponseEntity<>(values, HttpStatus.OK);
     }
 
